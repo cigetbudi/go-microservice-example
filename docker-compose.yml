@@ -1,17 +1,17 @@
 version: '3.8'
 
 services:
-db:
-  imag: postgres
-  restart: always
-  environtment:
-    POSTGRES_PASSWORD:admin
-api:
-  build: .
-  ports:
-   - 8080:8080
-  environment:
-    - PORT=8080
-    - DATABASE_URL=db
-  depends_on:
-    - db
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: admin
+  api:
+    build: .
+    ports:
+      - 8080:8080
+    environment:
+      - PORT=8080
+      - DATABASE_URL=db
+    depends_on:
+      - db
