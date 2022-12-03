@@ -31,7 +31,49 @@ func StartAPI(pgdb *pg.DB) *chi.Mux {
 }
 
 func getComments(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("comments"))
+	// get db dari context
+	pgdb, ok := r.Context().Value("DB").(*pg.DB)
+	if !ok {
+		res := &models.CommentsResponse{
+			Success:  false,
+			Error:    "gagal ambil db dari Context",
+			Comments: nil,
+		}
+		err := json.NewEncoder(w).Encode(res)
+		if err != nil {
+			log.Printf("gagal kirim response %v\n", err)
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// panggil get Comments dari models
+	comments, err := models.GetComments(pgdb)
+	if err != nil {
+		res := &models.CommentsResponse{
+			Success:  false,
+			Error:    err.Error(),
+			Comments: nil,
+		}
+		err := json.NewEncoder(w).Encode(res)
+		if err != nil {
+			log.Printf("gagal kirim response %v\n", err)
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// semua aman
+	res := &models.CommentsResponse{
+		Success:  true,
+		Error:    "",
+		Comments: comments,
+	}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Printf("gagal kirim response %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func createComment(w http.ResponseWriter, r *http.Request) {

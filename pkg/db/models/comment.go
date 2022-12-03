@@ -16,6 +16,12 @@ type CreateCommentRequest struct {
 	UserID  int64  `json:"user_id"`
 }
 
+type CommentsResponse struct {
+	Success  bool       `json:"success"`
+	Error    string     `json:"error"`
+	Comments []*Comment `json:"comments"`
+}
+
 type CommentResponse struct {
 	Success bool     `json:"success"`
 	Error   string   `json:"error"`
