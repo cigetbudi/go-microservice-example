@@ -11,6 +11,17 @@ type Comment struct {
 	User    *User  `pg:"rel:has-one" json:"user"`
 }
 
+type CreateCommentRequest struct {
+	Comment string `json:"comment"`
+	UserID  int64  `json:"user_id"`
+}
+
+type CommentResponse struct {
+	Success bool     `json:"success"`
+	Error   string   `json:"error"`
+	Comment *Comment `json:"comment"`
+}
+
 func CreateComment(db *pg.DB, req *Comment) (*Comment, error) {
 	_, err := db.Model(req).Insert()
 	if err != nil {
