@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"go-microservice-example/pkg/db/models"
+	"go-microservice-example/pkg/util"
 	"log"
 	"net/http"
 
@@ -34,31 +35,13 @@ func getComments(w http.ResponseWriter, r *http.Request) {
 	// get db dari context
 	pgdb, ok := r.Context().Value("DB").(*pg.DB)
 	if !ok {
-		res := &models.CommentsResponse{
-			Success:  false,
-			Error:    "gagal ambil db dari Context",
-			Comments: nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("gagal kirim response %v\n", err)
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		util.HandleDBFromContextErr(w)
 		return
 	}
 	// panggil get Comments dari models
 	comments, err := models.GetComments(pgdb)
 	if err != nil {
-		res := &models.CommentsResponse{
-			Success:  false,
-			Error:    err.Error(),
-			Comments: nil,
-		}
-		err := json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("gagal kirim response %v\n", err)
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		util.HandleErr(w, err)
 		return
 	}
 	// semua aman
@@ -82,17 +65,7 @@ func createComment(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(req)
 	// kalo ada error pas binding
 	if err != nil {
-		res := &models.CommentResponse{
-			Success: false,
-			Error:   err.Error(),
-			Comment: nil,
-		}
-
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("gagal kirim response %v\n", err)
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		util.HandleErr(w, err)
 		return
 	}
 
@@ -100,16 +73,7 @@ func createComment(w http.ResponseWriter, r *http.Request) {
 	pgdb, ok := r.Context().Value("DB").(*pg.DB)
 	// gagal get db
 	if !ok {
-		res := &models.CommentResponse{
-			Success: false,
-			Error:   "gagal ambil DB dari Context",
-			Comment: nil,
-		}
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("gagal kirim response %v\n", err)
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		util.HandleDBFromContextErr(w)
 		return
 	}
 	// berhasil get db
@@ -119,16 +83,7 @@ func createComment(w http.ResponseWriter, r *http.Request) {
 	})
 	// error pas eksekusi ke db
 	if err != nil {
-		res := &models.CommentResponse{
-			Success: false,
-			Error:   err.Error(),
-			Comment: nil,
-		}
-		err = json.NewEncoder(w).Encode(res)
-		if err != nil {
-			log.Printf("error sending response %v\n", err)
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		util.HandleErr(w, err)
 		return
 	}
 	// berhasil dan semuanya aman
