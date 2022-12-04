@@ -22,6 +22,7 @@ func StartAPI(pgdb *pg.DB) *chi.Mux {
 	r.Route("/comments", func(r chi.Router) {
 		r.Post("/", createComment)
 		r.Get("/", getComments)
+		r.Get("/{commentID}", getCommentByID)
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +54,39 @@ func getComments(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		log.Printf("gagal kirim response %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func getCommentByID(w http.ResponseWriter, r *http.Request) {
+	// get if dari url
+	commentID := chi.URLParam(r, "commentID")
+
+	// get db dati Context
+	pgdb, ok := r.Context().Value("DB").(*pg.DB)
+	if !ok {
+		util.HandleDBFromContextErr(w)
+		return
+	}
+
+	// get comment dari db by id
+	comment, err := models.GetComment(pgdb, commentID)
+	if err != nil {
+		util.HandleErr(w, err)
+		return
+	}
+
+	// berhasil get dari db
+	res := &models.CommentResponse{
+		Success: true,
+		Error:   "",
+		Comment: comment,
+	}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Printf("error encoding comments: %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
