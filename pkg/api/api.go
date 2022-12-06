@@ -25,6 +25,7 @@ func StartAPI(pgdb *pg.DB) *chi.Mux {
 		r.Get("/", getComments)
 		r.Get("/{commentID}", getCommentByID)
 		r.Put("/{commentID}", updateCommentByID)
+		r.Delete("/{commentID}", deleteCommentByID)
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -186,4 +187,45 @@ func updateCommentByID(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 
+}
+
+func deleteCommentByID(w http.ResponseWriter, r *http.Request) {
+	// req := &models.CreateCommentRequest{}
+	// err := json.NewDecoder(r.Body).Decode(req)
+	// if err != nil {
+	// 	util.HandleErr(w, err)
+	// 	return
+	// }
+
+	pgdb, ok := r.Context().Value("DB").(*pg.DB)
+	if !ok {
+		util.HandleDBFromContextErr(w)
+		return
+	}
+
+	commentID := chi.URLParam(r, "commentID")
+	intCommentID, err := strconv.ParseInt(commentID, 10, 64)
+	if err != nil {
+		util.HandleErr(w, err)
+		return
+	}
+
+	err = models.DeleteComment(pgdb, intCommentID)
+	if err != nil {
+		util.HandleErr(w, err)
+		return
+	}
+	// return sukses
+	res := &models.CommentResponse{
+		Success: true,
+		Error:   "",
+		Comment: nil,
+	}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Printf("gagal kirim response %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
