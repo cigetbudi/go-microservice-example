@@ -6,6 +6,7 @@ import (
 	"go-microservice-example/pkg/util"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,6 +24,7 @@ func StartAPI(pgdb *pg.DB) *chi.Mux {
 		r.Post("/", createComment)
 		r.Get("/", getComments)
 		r.Get("/{commentID}", getCommentByID)
+		r.Put("/{commentID}", updateCommentByID)
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +88,7 @@ func getCommentByID(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		log.Printf("error encoding comments: %v\n", err)
+		log.Printf("gagal kirim response %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -128,9 +130,60 @@ func createComment(w http.ResponseWriter, r *http.Request) {
 	}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		log.Printf("error sending response %v\n", err)
+		log.Printf("gagal kirim response %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func updateCommentByID(w http.ResponseWriter, r *http.Request) {
+	req := &models.CreateCommentRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
+	if err != nil {
+		util.HandleErr(w, err)
+		return
+	}
+
+	pgdb, ok := r.Context().Value("DB").(*pg.DB)
+	if !ok {
+		util.HandleDBFromContextErr(w)
+		return
+	}
+
+	// get commentID by url
+	commentID := chi.URLParam(r, "commentID")
+
+	// dapat ID tapi masih string, convert ke int
+	intCommentID, err := strconv.ParseInt(commentID, 10, 64)
+	if err != nil {
+		util.HandleErr(w, err)
+		return
+	}
+
+	// proses update
+	comment, err := models.UpdateComment(pgdb, &models.Comment{
+		ID:      intCommentID,
+		Comment: req.Comment,
+		UserID:  req.UserID,
+	})
+	if err != nil {
+		util.HandleErr(w, err)
+		return
+	}
+
+	// return sukses
+	res := &models.CommentResponse{
+		Success: true,
+		Error:   "",
+		Comment: comment,
+	}
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		log.Printf("gagal kirim response %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
 }
